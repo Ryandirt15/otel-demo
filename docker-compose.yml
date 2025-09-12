@@ -8,7 +8,7 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./collector-minimal.yaml:/etc/otelcol-contrib/config.yaml:ro
-      - ./demo_app.log:/var/tmp/demo_app.log:rw
+      - ./logs:/var/tmp/logs:rw
     ports:
       - "4317:4317"     # OTLP gRPC
       - "4318:4318"     # OTLP HTTP
@@ -65,8 +65,10 @@ services:
   demo-app:
     build: ./demo-app
     container_name: demo-app
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
     volumes:
-      - ./demo_app.log:/var/tmp/demo_app.log:rw
+      - ./logs:/var/tmp/logs:rw
     depends_on:
       - otel-collector
     restart: unless-stopped

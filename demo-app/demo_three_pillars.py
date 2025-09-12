@@ -19,8 +19,8 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 # ---------------------------
 # Config
 # ---------------------------
-OTLP_ENDPOINT = "http://127.0.0.1:4317"  # Collector gRPC
-LOG_PATH = "/var/tmp/demo_app.log"        # Collector filelog receiver tails this
+OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317") # Collector gRPC
+LOG_PATH = "/var/tmp/logs/demo.log"        # Collector filelog receiver tails this
 
 # ---------------------------
 # Resource
