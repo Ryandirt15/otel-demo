@@ -1,0 +1,68 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+  filelog:
+    include: [ /var/tmp/demo_app.log ]
+    start_at: beginning
+    operators:
+      - type: json_parser
+        parse_from: body
+      - type: move
+        from: attributes.message
+        to: body
+
+processors:
+  batch: {}
+  resource:
+    attributes:
+      - action: upsert
+        key: service.name
+        value: demo-stack
+  spanmetrics:
+    # turn traces into Prometheus metrics, exposed via the prometheus exporter
+    metrics_exporter: prometheus
+    dimensions:
+      - name: hostname
+      - name: src
+      - name: dst
+      - name: status
+
+exporters:
+  # Prometheus endpoint Collector will expose for Prometheus/Grafana to scrape
+  prometheus:
+    endpoint: "0.0.0.0:9464"
+
+  # Send logs to Loki
+  loki:
+    endpoint: "http://127.0.0.1:3100/loki/api/v1/push"
+    # default label set uses resource + attributes; keep defaults for demo
+
+  # Send traces to Jaeger (via OTLP gRPC)
+  otlp/jaeger:
+    endpoint: "127.0.0.1:4317"
+    tls: { insecure: true }
+
+  debug:
+    verbosity: normal
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]        # metrics from app (OTLP)
+      processors: [batch, resource]
+      exporters: [prometheus, debug]
+
+    logs:
+      receivers: [filelog]     # ingest JSON logs from file
+      processors: [batch, resource]
+      exporters: [loki, debug]
+
+    traces:
+      receivers: [otlp]        # traces from app (OTLP)
+      processors: [spanmetrics, batch, resource]
+      exporters: [otlp/jaeger, debug, prometheus]
