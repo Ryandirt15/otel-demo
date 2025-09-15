@@ -26,7 +26,7 @@ LOG_PATH = "/var/tmp/logs/demo.log"        # Collector filelog receiver tails th
 # Resource
 # ---------------------------
 resource = Resource.create({
-    "service.name": "demo-three-pillars",
+    "service.name": "demo-packet-processor",
     "service.instance.id": "host1"
 })
 
@@ -138,7 +138,7 @@ while True:
     # Simulate work burst
     req_count = random.randint(3, 8)
 
-    with tracer.start_as_current_span("process_batch") as root:
+    with tracer.start_as_current_span("process_packets") as root:
         root.set_attribute("hostname", "host1")
         batch_latency_ms = 0
 
@@ -146,14 +146,25 @@ while True:
             src = random.choice(sources)
             dst = random.choice(destinations)
             size = random.randint(200, 4000)
+            size_out = size = random.randint(50, 200)            
+            packets = size // 512
             status = random.choice(["ok", "ok", "ok", "error"])  # ~25% errors for demo
 
             t0 = time.time()
-            with tracer.start_as_current_span("ingest"):
+            with tracer.start_as_current_span("receiver") as recv_span:
+                recv_span.set_attribute("source", src)
+                recv_span.set_attribute("destination", dst)
+                recv_span.set_attribute("Recived Bytes", size)
                 time.sleep(random.random() * 0.02)
-            with tracer.start_as_current_span("transform"):
+            with tracer.start_as_current_span("inflation") as dcm_span:
+                dcm_span.set_attribute("source", src)
+                dcm_span.set_attribute("destination", dst)
+                dcm_span.set_attribute("Inflation Size", size_out - size)
                 time.sleep(random.random() * 0.02)
-            with tracer.start_as_current_span("store"):
+            with tracer.start_as_current_span("sender") as send_span:
+                send_span.set_attribute("source", src)
+                send_span.set_attribute("destination", dst)
+                send_span.set_attribute("Sent Bytes", size_out)
                 time.sleep(random.random() * 0.02)
             latency_ms = int((time.time() - t0) * 1000)
             batch_latency_ms += latency_ms

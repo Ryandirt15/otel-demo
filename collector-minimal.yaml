@@ -12,9 +12,14 @@ exporters:
     namespace: otel
   debug:
     verbosity: detailed
+  otlp:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
 
 processors:
-  batch:
+  batch: {}
 
 service:
   pipelines:
@@ -29,4 +34,4 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug]
+      exporters: [otlp, debug]
