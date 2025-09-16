@@ -5,11 +5,18 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+  filelog:
+    include: [/var/tmp/logs/*.log]
+    start_at: beginning
 
 exporters:
   prometheus:
     endpoint: 0.0.0.0:9464
     namespace: otel
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
   debug:
     verbosity: detailed
   otlp:
@@ -28,9 +35,9 @@ service:
       processors: [batch]
       exporters: [prometheus, debug]
     logs:
-      receivers: [otlp]
+      receivers: [filelog, otlp]
       processors: [batch]
-      exporters: [debug]
+      exporters: [otlphttp/loki, debug]
     traces:
       receivers: [otlp]
       processors: [batch]
